@@ -23,8 +23,8 @@
 
 void Write4(int value, FILE* f);
 void Write8(long long value, FILE* f);
-int Read2(void* p);
-int Read4(void* p);
-long long Read8(void* p);
+int Read2(const void* p);
+int Read4(const void* p);
+long long Read8(const void* p);
 
 #endif //  _BUILD_TOOLS_APPLYPATCH_UTILS_H

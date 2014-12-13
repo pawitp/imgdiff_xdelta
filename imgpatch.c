@@ -45,12 +45,12 @@ ssize_t sink(const unsigned char* data, ssize_t len, void* token) {
     return done;
 }
 
-int readfile(char *ptemp, unsigned char **out_data, size_t *out_size) {
+int readfile(char *ptemp, unsigned char **out_data, ssize_t *out_size) {
   struct stat st;
   if (stat(ptemp, &st) != 0) {
     printf("failed to stat patch file %s: %s\n",
             ptemp, strerror(errno));
-    return NULL;
+    return -1;
   }
 
   unsigned char* data = malloc(st.st_size);
@@ -60,26 +60,28 @@ int readfile(char *ptemp, unsigned char **out_data, size_t *out_size) {
   FILE* f = fopen(ptemp, "rb");
   if (f == NULL) {
     printf("failed to open patch %s: %s\n", ptemp, strerror(errno));
-    return NULL;
+    return -1;
   }
   if (fread(data, 1, st.st_size, f) != st.st_size) {
     printf("failed to read patch %s: %s\n", ptemp, strerror(errno));
-    return NULL;
+    return -1;
   }
   fclose(f);
+  return 0;
 }
 
-int writefile(char *ptemp, unsigned char *data, size_t size) {
+int writefile(char *ptemp, const unsigned char *data, size_t size) {
   FILE* f = fopen(ptemp, "wb");
   if (f == NULL) {
     printf("failed to open patch %s: %s\n", ptemp, strerror(errno));
-    return NULL;
+    return -1;
   }
   if (fwrite(data, 1, size, f) != size) {
     printf("failed to write patch %s: %s\n", ptemp, strerror(errno));
-    return NULL;
+    return -1;
   }
   fclose(f);
+  return 0;
 }
 
 int ApplyBSDiffPatchMem(const unsigned char* old_data, ssize_t old_size,
@@ -104,7 +106,7 @@ int ApplyBSDiffPatchMem(const unsigned char* old_data, ssize_t old_size,
   int r = system(command);
   if (r != 0) {
     printf("bsdiff() failed: %d\n", r);
-    return NULL;
+    return r;
   }
 
   readfile(tgt, new_data, new_size);
@@ -112,6 +114,7 @@ int ApplyBSDiffPatchMem(const unsigned char* old_data, ssize_t old_size,
   unlink(tgt);
   unlink(src);
   unlink(patch);
+  return 0;
 }
 
 int ApplyBSDiffPatch(const unsigned char* old_data, ssize_t old_size,
@@ -122,6 +125,7 @@ int ApplyBSDiffPatch(const unsigned char* old_data, ssize_t old_size,
   ApplyBSDiffPatchMem(old_data, old_size, patch_data, patch_size, &new_data, &new_size);
   sink(new_data, new_size, token);
   free(new_data);
+  return 0;
 }
 
 /*
@@ -131,10 +135,10 @@ int ApplyBSDiffPatch(const unsigned char* old_data, ssize_t old_size,
  * Return 0 on success.
  */
 int ApplyImagePatch(const unsigned char* old_data, ssize_t old_size,
-                    char* patch_data, ssize_t patch_size,
-                    const unsigned char* outfile) {
+                    const unsigned char* patch_data, ssize_t patch_size,
+                    const char* outfile) {
     ssize_t pos = 12;
-    char* header = patch_data;
+    const unsigned char* header = patch_data;
     if (patch_size < 12) {
         printf("patch too short to contain header\n");
         return -1;
@@ -172,7 +176,7 @@ int ApplyImagePatch(const unsigned char* old_data, ssize_t old_size,
         printf("Chunk %d/%d type = %d\n", i, num_chunks, type);
 
         if (type == CHUNK_NORMAL) {
-            char* normal_header = patch_data + pos;
+            const unsigned char* normal_header = patch_data + pos;
             pos += 32;
             if (pos > patch_size) {
                 printf("failed to read chunk %d normal header data\n", i);
@@ -187,7 +191,7 @@ int ApplyImagePatch(const unsigned char* old_data, ssize_t old_size,
             ApplyBSDiffPatch(old_data + src_start, src_len,
                              patch_data + patch_offset, patch_seg_size, token);
         } else if (type == CHUNK_RAW) {
-            char* raw_header = patch_data + pos;
+            const unsigned char* raw_header = patch_data + pos;
             pos += 4;
             if (pos > patch_size) {
                 printf("failed to read chunk %d raw header data\n", i);
@@ -208,7 +212,7 @@ int ApplyImagePatch(const unsigned char* old_data, ssize_t old_size,
             pos += data_len;
         } else if (type == CHUNK_DEFLATE) {
             // deflate chunks have an additional 60 bytes in their chunk header.
-            char* deflate_header = patch_data + pos;
+            const unsigned char* deflate_header = patch_data + pos;
             pos += 68;
             if (pos > patch_size) {
                 printf("failed to read chunk %d deflate header data\n", i);
@@ -343,13 +347,13 @@ int main(int argc, char *argv[]) {
   char *patch = argv[2];
   char *out = argv[3];
 
-  size_t src_size, patch_size;
+  ssize_t src_size, patch_size;
   unsigned char *src_data, *patch_data;
   
   readfile(src, &src_data, &src_size);
-  printf("Read %s size %d\n", src, src_size);
+  printf("Read %s size %zd\n", src, src_size);
   readfile(patch, &patch_data, &patch_size);
-  printf("Read %s size %d\n", patch, patch_size);
+  printf("Read %s size %zd\n", patch, patch_size);
   
   ApplyImagePatch(src_data, src_size, patch_data, patch_size, out);
 }

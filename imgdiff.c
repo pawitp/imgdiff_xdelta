@@ -272,7 +272,7 @@ unsigned char* ReadZip(const char* filename,
 #if 1
   printf("found %d deflated entries\n", entrycount);
   for (i = 0; i < entrycount; ++i) {
-    printf("off %10d  len %10d unlen %10d   %p %s\n",
+    printf("off %10zd  len %10zd unlen %10zd   %p %s\n",
            temp_entries[i].data_offset,
            temp_entries[i].deflate_len,
            temp_entries[i].uncomp_len,
@@ -482,7 +482,7 @@ unsigned char* ReadImage(const char* filename,
       // the decompression.
       size_t footer_size = Read4(p-4);
       if (footer_size != curr[-2].len) {
-        printf("Error: footer size %d != decompressed size %d\n",
+        printf("Error: footer size %zd != decompressed size %zd\n",
                 footer_size, curr[-2].len);
         free(img);
         return NULL;
@@ -807,7 +807,7 @@ ImageChunk* FindChunkByName(const char* name,
 void DumpChunks(ImageChunk* chunks, int num_chunks) {
     int i;
     for (i = 0; i < num_chunks; ++i) {
-        printf("chunk %d: type %d start %d len %d\n",
+        printf("chunk %d: type %d start %zd len %zd\n",
                i, chunks[i].type, chunks[i].start, chunks[i].len);
     }
 }
@@ -991,7 +991,7 @@ int main(int argc, char** argv) {
       }
     } else {
       if (i == 1 && bonus_data) {
-        printf("  using %d bytes of bonus data for chunk %d\n", bonus_size, i);
+        printf("  using %zu bytes of bonus data for chunk %d\n", bonus_size, i);
         src_chunks[i].data = realloc(src_chunks[i].data, src_chunks[i].len + bonus_size);
         memcpy(src_chunks[i].data+src_chunks[i].len, bonus_data, bonus_size);
         src_chunks[i].len += bonus_size;
@@ -999,7 +999,7 @@ int main(int argc, char** argv) {
 
       patch_data[i] = MakePatch(src_chunks+i, tgt_chunks+i, patch_size+i);
     }
-    printf("patch %3d is %d bytes (of %d)\n",
+    printf("patch %3d is %zd bytes (of %zd)\n",
            i, patch_size[i], tgt_chunks[i].source_len);
   }
 
@@ -1036,7 +1036,7 @@ int main(int argc, char** argv) {
 
     switch (tgt_chunks[i].type) {
       case CHUNK_NORMAL:
-        printf("chunk %3d: normal   (%10d, %10d)  %10d\n", i,
+        printf("chunk %3d: normal   (%10zd, %10zd)  %10zd\n", i,
                tgt_chunks[i].start, tgt_chunks[i].len, patch_size[i]);
         Write8(tgt_chunks[i].source_start, f);
         Write8(tgt_chunks[i].source_len, f);
@@ -1046,7 +1046,7 @@ int main(int argc, char** argv) {
         break;
 
       case CHUNK_DEFLATE:
-        printf("chunk %3d: deflate  (%10d, %10d)  %10d  %s\n", i,
+        printf("chunk %3d: deflate  (%10zd, %10zd)  %10zd  %s\n", i,
                tgt_chunks[i].start, tgt_chunks[i].deflate_len, patch_size[i],
                tgt_chunks[i].filename);
         Write8(tgt_chunks[i].source_start, f);
@@ -1064,7 +1064,7 @@ int main(int argc, char** argv) {
         break;
 
       case CHUNK_RAW:
-        printf("chunk %3d: raw      (%10d, %10d)\n", i,
+        printf("chunk %3d: raw      (%10zd, %10zd)\n", i,
                tgt_chunks[i].start, tgt_chunks[i].len);
         Write4(patch_size[i], f);
         fwrite(patch_data[i], 1, patch_size[i], f);

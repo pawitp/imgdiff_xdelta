@@ -7,4 +7,4 @@ imgpatch: imgpatch.c utils.c
 	gcc -g -o imgpatch imgpatch.c utils.c -lbz2 -lz
 
 clean:
-	rm -f imgdiff imgdiff
+	rm -f imgdiff imgpatch

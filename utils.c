@@ -38,22 +38,22 @@ void Write8(long long value, FILE* f) {
   fputc((value >> 56) & 0xff, f);
 }
 
-int Read2(void* pv) {
-    unsigned char* p = pv;
+int Read2(const void* pv) {
+    const unsigned char* p = pv;
     return (int)(((unsigned int)p[1] << 8) |
                  (unsigned int)p[0]);
 }
 
-int Read4(void* pv) {
-    unsigned char* p = pv;
+int Read4(const void* pv) {
+    const unsigned char* p = pv;
     return (int)(((unsigned int)p[3] << 24) |
                  ((unsigned int)p[2] << 16) |
                  ((unsigned int)p[1] << 8) |
                  (unsigned int)p[0]);
 }
 
-long long Read8(void* pv) {
-    unsigned char* p = pv;
+long long Read8(const void* pv) {
+    const unsigned char* p = pv;
     return (long long)(((unsigned long long)p[7] << 56) |
                        ((unsigned long long)p[6] << 48) |
                        ((unsigned long long)p[5] << 40) |
